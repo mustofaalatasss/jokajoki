@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     // This allows the API to return immediately before the server restarts itself
     const child = spawn(
       "sh",
-      ["-c", "git pull origin main && npm install && npm run build && pm2 restart jokajoki"],
+      ["-c", "git pull origin main && npm install && npm run build && pm2 restart all"],
       {
         detached: true,
         stdio: "ignore",
