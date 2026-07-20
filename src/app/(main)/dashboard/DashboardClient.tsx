@@ -369,7 +369,7 @@ export default function DashboardClient({
 
   return (
     <>
-      <AddQueueDialog open={addDialogOpen} onClose={() => { setAddDialogOpen(false); router.refresh() }} jokiRole={joki?.jokiRole || "Jungler"} />
+      <AddQueueDialog open={addDialogOpen} onClose={() => { setAddDialogOpen(false); router.refresh() }} jokiRole={joki?.jokiRole || "Jungler"} isDemo={isDemo} onDemoClick={() => { setAddDialogOpen(false); setDemoWarning(true); }} />
 
       {/* Quick Process Dialog */}
       <Dialog open={quickProcessOpen} onOpenChange={setQuickProcessOpen}>
@@ -858,7 +858,7 @@ export default function DashboardClient({
 
         {/* Inline Add Queue Form */}
         <motion.div variants={itemVariants} className="hidden lg:block mb-6">
-          <InlineAddQueueForm onAdded={() => router.refresh()} jokiRole={joki?.jokiRole || "Jungler"} />
+          <InlineAddQueueForm onAdded={() => router.refresh()} jokiRole={joki?.jokiRole || "Jungler"} isDemo={isDemo} onDemoClick={() => setDemoWarning(true)} />
         </motion.div>
 
         {/* Main Queue Table */}

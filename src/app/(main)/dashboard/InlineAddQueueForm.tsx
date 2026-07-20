@@ -8,7 +8,7 @@ import { NumberInput } from "@/components/ui/NumberInput"
 import { addToQueue, searchCustomers } from "./actions"
 import { Plus, User, Crown, Shield, Gamepad2 } from "lucide-react"
 
-export function InlineAddQueueForm({ onAdded, jokiRole = "Jungler" }: { onAdded?: () => void, jokiRole?: string }) {
+export function InlineAddQueueForm({ onAdded, jokiRole = "Jungler", isDemo, onDemoClick }: { onAdded?: () => void, jokiRole?: string, isDemo?: boolean, onDemoClick?: () => void }) {
   const [nickname, setNickname] = React.useState("")
   const [type, setType] = React.useState<"REGULAR" | "FAST_TRACK">("REGULAR")
   const defaultRole = "Mid Laner" !== jokiRole ? "Mid Laner" : "Roamer"
@@ -23,6 +23,7 @@ export function InlineAddQueueForm({ onAdded, jokiRole = "Jungler" }: { onAdded?
   const [showSuggestions, setShowSuggestions] = React.useState(false)
 
   React.useEffect(() => {
+    if (isDemo) return
     if (nickname.length >= 2) {
       const delayFn = setTimeout(async () => {
         const res = await searchCustomers(nickname)
@@ -52,6 +53,10 @@ export function InlineAddQueueForm({ onAdded, jokiRole = "Jungler" }: { onAdded?
     if (e) e.preventDefault()
     if (!nickname.trim()) {
       setError("Nickname tidak boleh kosong!")
+      return
+    }
+    if (isDemo && onDemoClick) {
+      onDemoClick()
       return
     }
     setLoading(true)

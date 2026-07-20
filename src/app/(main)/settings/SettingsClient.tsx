@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input"
 import { Settings, Shield, Clock, Users, Save, Crown } from "lucide-react"
 import { updateSettings } from "./actions"
 
-export default function SettingsClient({ initialJokiName, initialJokiRole, initialRateCard, initialRateCardFT }: { initialJokiName: string, initialJokiRole: string, initialRateCard: number, initialRateCardFT: number }) {
+export default function SettingsClient({ initialJokiName, initialJokiRole, initialRateCard, initialRateCardFT, isDemo }: { initialJokiName: string, initialJokiRole: string, initialRateCard: number, initialRateCardFT: number, isDemo?: boolean }) {
   const router = useRouter()
   const [jokiName, setJokiName] = React.useState(initialJokiName)
   const [jokiRole, setJokiRole] = React.useState(initialJokiRole)
@@ -22,9 +22,11 @@ export default function SettingsClient({ initialJokiName, initialJokiRole, initi
   async function handleSave() {
     setLoading(true)
     try {
-      await updateSettings(jokiName, jokiRole, parseInt(rateCard) || 10000, parseInt(rateCardFT) || 15000)
+      if (!isDemo) {
+        await updateSettings(jokiName, jokiRole, parseInt(rateCard) || 10000, parseInt(rateCardFT) || 15000)
+      }
       setSaved(true)
-      router.refresh()
+      if (!isDemo) router.refresh()
       setTimeout(() => setSaved(false), 2000)
     } catch (e) {
       console.error(e)

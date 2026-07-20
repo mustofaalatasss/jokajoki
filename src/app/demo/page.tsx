@@ -54,11 +54,6 @@ export default function DemoPage() {
 
   return (
     <AppLayout isDemo={true}>
-      <div className="max-w-7xl mx-auto px-4 mb-4">
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded text-center text-sm font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(226,59,73,0.2)]">
-          MODE PAMERAN (STATIC DEMO) - KILAT & RINGAN
-        </div>
-      </div>
       <DashboardClient 
         stats={mockStats}
         queueData={mockQueueData}

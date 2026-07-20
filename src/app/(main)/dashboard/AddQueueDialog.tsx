@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/Select"
 import { NumberInput } from "@/components/ui/NumberInput"
 import { addToQueue, searchCustomers } from "./actions"
 
-export function AddQueueDialog({ open, onClose, jokiRole = "Jungler" }: { open: boolean, onClose: () => void, jokiRole?: string }) {
+export function AddQueueDialog({ open, onClose, jokiRole = "Jungler", isDemo, onDemoClick }: { open: boolean, onClose: () => void, jokiRole?: string, isDemo?: boolean, onDemoClick?: () => void }) {
   const [nickname, setNickname] = React.useState("")
   const [type, setType] = React.useState<"REGULAR" | "FAST_TRACK">("REGULAR")
   const defaultRole = "Mid Laner" !== jokiRole ? "Mid Laner" : "Roamer"
@@ -37,6 +37,7 @@ export function AddQueueDialog({ open, onClose, jokiRole = "Jungler" }: { open: 
   }, [open])
 
   React.useEffect(() => {
+    if (isDemo) return
     if (nickname.length >= 2) {
       const delayFn = setTimeout(async () => {
         const res = await searchCustomers(nickname)
@@ -66,6 +67,10 @@ export function AddQueueDialog({ open, onClose, jokiRole = "Jungler" }: { open: 
     e.preventDefault()
     if (!nickname.trim()) {
       setError("Nickname tidak boleh kosong!")
+      return
+    }
+    if (isDemo && onDemoClick) {
+      onDemoClick()
       return
     }
     setLoading(true)
