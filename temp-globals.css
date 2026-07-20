@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #08090B;
+  --color-surface-1: #101216;
+  --color-surface-2: #16191F;
+  --color-surface-3: #1C2027;
+  --color-border: #2A2E36;
+  --color-red-dark: #7F1724;
+  --color-red: #B91F2E;
+  --color-red-bright: #E23B49;
+  --color-text-main: #F4F5F7;
+  --color-muted: #969DA8;
+  --color-success: #36B873;
+  --color-warning: #E2A33B;
+  --color-danger: #D74343;
+  --font-heading: var(--font-barlow-condensed);
+  --font-body: var(--font-inter);
+}
+
+:root {
+  --bg: #08090B;
+  --surface-1: #101216;
+  --surface-2: #16191F;
+  --surface-3: #1C2027;
+  --border: #2A2E36;
+  --red-dark: #7F1724;
+  --red: #B91F2E;
+  --red-bright: #E23B49;
+  --text: #F4F5F7;
+  --muted: #969DA8;
+  --success: #36B873;
+  --warning: #E2A33B;
+  --danger: #D74343;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-barlow-condensed), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes glitch-anim {
+  0% { clip-path: inset(10% 0 80% 0); transform: translate(0); }
+  20% { clip-path: inset(80% 0 10% 0); transform: translate(-1px, 1px); }
+  40% { clip-path: inset(30% 0 40% 0); transform: translate(1px, -1px); }
+  60% { clip-path: inset(50% 0 30% 0); transform: translate(-1px, 0); }
+  80% { clip-path: inset(20% 0 60% 0); transform: translate(1px, 1px); }
+  100% { clip-path: inset(90% 0 5% 0); transform: translate(0); }
+}
+
+.glitch {
+  position: relative;
+}
+
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  pointer-events: none;
+}
+
+.glitch::before {
+  left: 1px;
+  text-shadow: -1px 0 rgba(226, 59, 73, 0.5);
+  animation: glitch-anim 3.5s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+  left: -1px;
+  text-shadow: 1px 0 rgba(54, 184, 115, 0.5);
+  animation: glitch-anim 4s infinite linear alternate-reverse;
+}
+
+.clip-slanted {
+  clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+}
+
+.clip-hex {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.metallic-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 20px rgba(226, 59, 73, 0.1), 0 0 15px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, rgba(22, 25, 31, 0.9) 0%, rgba(8, 9, 11, 0.95) 100%);
+}

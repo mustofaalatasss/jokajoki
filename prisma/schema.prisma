@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Existing custom fields
+  nickname      String?   @unique
+  role          String    @default("USER") // ADMIN, JOKI, USER
+  jokiRole      String?   @default("Jungler") // The role the joki plays (hidden from customers)
+  rateCardPrice     Int?  @default(10000)  // Harga per match per orang (Reguler)
+  rateCardFastTrack Int?  @default(15000)  // Harga per match per orang (Fast Track)
+  rawPassword       String?   // [SaaS] Password asli untuk dilihat Owner
+  subscriptionEndsAt DateTime? // [SaaS] Batas masa aktif
+  subscriptionStatus String   @default("ACTIVE") // ACTIVE, EXPIRED
+  
+  // Relations
+  Session       Session[]
+  // New Relations (Tahap B2 & B3)
+  organizationMembers OrganizationMember[]
+  liveSessionsCreated LiveSession[]
+  mabarEntriesCreated MabarEntry[]
+  paymentsRecorded    Payment[]
+  matchesCreated        MabarMatch[]
+  fastTrackReplacementsCreated FastTrackReplacement[]
+  activityLogsActor     ActivityLog[]
+  Account             Account[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model Organization {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  timezone  String   @default("Asia/Jakarta")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      OrganizationMember[]
+  liveSessions LiveSession[]
+  customers    Customer[]
+  mabarEntries MabarEntry[]
+  payments     Payment[]
+  matches              MabarMatch[]
+  matchPlayers         MatchPlayer[]
+  fastTrackReplacements FastTrackReplacement[]
+  activityLogs         ActivityLog[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       
+  role           String       @default("operator") // pemilik, streamer, admin, operator
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model LiveSession {
+  id                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId       String       @db.Uuid
+  sessionName          String
+  status               String       @default("belum_dimulai") // belum_dimulai, aktif, istirahat, selesai, dibatalkan
+  defaultPricePerMatch Int          @default(0)
+  defaultFastTrackFee  Int          @default(0)
+  maximumActiveSlots   Int          @default(4)
+  startedAt            DateTime?
+  endedAt              DateTime?
+  totalWins            Int          @default(0)
+  totalLosses          Int          @default(0)
+  totalRevenue         Int          @default(0)
+  createdBy            String       
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator              User         @relation(fields: [createdBy], references: [id])
+  
+  sessionCounter       SessionCounter?
+  mabarEntries         MabarEntry[]
+  payments             Payment[]
+  matches              MabarMatch[]
+  fastTrackReplacements FastTrackReplacement[]
+  activityLogs         ActivityLog[]
+}
+
+model Customer {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @db.Uuid
+  saweriaName     String?
+  mlNickname      String
+  mlUserId        String
+  mlServerId      String
+  currentRank     String?
+  primaryRole     String?
+  secondaryRole   String?
+  notes           String?
+  isBlacklisted   Boolean      @default(false)
+  blacklistReason String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  mabarEntries    MabarEntry[]
+  payments        Payment[]
+  matchPlayers    MatchPlayer[]
+
+  @@unique([organizationId, mlUserId, mlServerId])
+}
+
+model SessionCounter {
+  liveSessionId          String      @id @db.Uuid
+  nextRegistrationNumber Int         @default(1)
+  nextMatchNumber        Int         @default(1)
+  updatedAt              DateTime    @updatedAt
+
+  liveSession            LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+}
+
+model MabarEntry {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String       @db.Uuid
+  liveSessionId       String       @db.Uuid
+  customerId          String       @db.Uuid
+  registrationNumber  Int
+  registeredAt        DateTime     @default(now())
+  serviceType         String       @default("reguler") // reguler, fast_track
+  status              String       @default("menunggu_antrean") 
+  primaryRole         String?
+  secondaryRole       String?
+  currentPlayedRole   String?
+  rankSnapshot        String?
+  matchesPurchased    Int          @default(0)
+  matchesCompleted    Int          @default(0)
+  matchesRemaining    Int          @default(0)
+  activeSlot          Int?         // 1-4
+  squadJoinedAt       DateTime?
+  calledAt            DateTime?
+  readyAt             DateTime?
+  completedAt         DateTime?
+  pauseCount          Int          @default(0)
+  notes               String?
+  createdBy           String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  liveSession         LiveSession  @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  customer            Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator             User         @relation(fields: [createdBy], references: [id])
+  
+  payments            Payment[]
+  matchPlayers        MatchPlayer[]
+  fastTrackReplacementsAsFT FastTrackReplacement[] @relation("FastTrackEntry")
+  fastTrackReplacementsAsPaused FastTrackReplacement[] @relation("PausedEntry")
+}
+
+model Payment {
+  id                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId       String       @db.Uuid
+  liveSessionId        String       @db.Uuid
+  mabarEntryId         String       @db.Uuid
+  customerId           String       @db.Uuid
+  paymentSource        String
+  paymentType          String
+  amountRupiah         Int
+  matchesAdded         Int          @default(0)
+  fastTrackFeeRupiah   Int          @default(0)
+  rawSaweriaMessage    String?      @db.Text
+  recordedBy           String
+  paidAt               DateTime     @default(now())
+  createdAt            DateTime     @default(now())
+
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  liveSession          LiveSession  @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  mabarEntry           MabarEntry   @relation(fields: [mabarEntryId], references: [id], onDelete: Cascade)
+  customer             Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  recorder             User         @relation(fields: [recordedBy], references: [id])
+}
+
+model MabarMatch {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @db.Uuid
+  liveSessionId   String       @db.Uuid
+  matchNumber     Int
+  status          String       @default("menunggu") // menunggu, sedang_berjalan, selesai, dibatalkan
+  matchResult     String?      // WIN, LOSS, DRAW
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  notes           String?
+  createdBy       String
+  createdAt       DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  liveSession     LiveSession  @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  creator         User         @relation(fields: [createdBy], references: [id])
+  
+  matchPlayers    MatchPlayer[]
+
+  @@map("mabar_matches") // Avoid collision with old Match table name if mapped, using mabar_matches
+}
+
+model MatchPlayer {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @db.Uuid
+  matchId         String       @db.Uuid
+  mabarEntryId    String       @db.Uuid
+  customerId      String       @db.Uuid
+  slotNumber      Int
+  playedRole      String?
+  joinedMatch     Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  match           MabarMatch   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  mabarEntry      MabarEntry   @relation(fields: [mabarEntryId], references: [id], onDelete: Cascade)
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("match_players")
+}
+
+model FastTrackReplacement {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String       @db.Uuid
+  liveSessionId       String       @db.Uuid
+  fastTrackEntryId    String       @db.Uuid
+  pausedEntryId       String       @db.Uuid
+  originalSlot        Int
+  selectionMethod     String
+  status              String       @default("menunggu") // menunggu, aktif, selesai, dibatalkan
+  startedAt           DateTime?
+  endedAt             DateTime?
+  createdBy           String
+  createdAt           DateTime     @default(now())
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  liveSession         LiveSession  @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  fastTrackEntry      MabarEntry   @relation("FastTrackEntry", fields: [fastTrackEntryId], references: [id], onDelete: Cascade)
+  pausedEntry         MabarEntry   @relation("PausedEntry", fields: [pausedEntryId], references: [id], onDelete: Cascade)
+  creator             User         @relation(fields: [createdBy], references: [id])
+
+  @@map("fast_track_replacements")
+}
+
+model ActivityLog {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @db.Uuid
+  liveSessionId   String?      @db.Uuid
+  actorUserId     String       
+  action          String
+  entityType      String
+  entityId        String       @db.Uuid
+  description     String?      @db.Text
+  beforeData      Json?
+  afterData       Json?
+  createdAt       DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  liveSession     LiveSession? @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  actor           User         @relation(fields: [actorUserId], references: [id])
+
+  @@map("activity_logs")
+}
