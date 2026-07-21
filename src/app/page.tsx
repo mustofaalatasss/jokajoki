@@ -6,10 +6,12 @@ import Image from "next/image"
 import { motion, useScroll, useTransform, type Variants } from "framer-motion"
 import { useTransition } from "react"
 import { Button } from "@/components/ui/Button"
-import { Flame, Shield, Zap, Target, Crosshair, ChevronRight, ChevronDown, MessageSquareWarning, CheckCircle2, Crown, ShieldCheck } from "lucide-react"
+import { Flame, Shield, Zap, Target, Crosshair, ChevronRight, ChevronDown, MessageSquareWarning, CheckCircle2, Crown, ShieldCheck, CreditCard, ExternalLink, X, MessageCircle } from "lucide-react"
 
 export default function Home() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<{name: string, price: string, originalPrice?: string, save?: string} | null>(null)
   const { scrollYProgress } = useScroll()
   const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
   const [isPending, startTransition] = useTransition()
@@ -382,6 +384,100 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* --- PRICING SECTION --- */}
+      <section className="relative z-20 py-24 px-4 bg-[#080808] border-t border-[var(--red-dark)]/30">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-red-bright/5 rounded-full blur-[100px]" />
+        </div>
+        
+        <motion.div 
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={staggerContainer}
+          className="container mx-auto max-w-6xl relative z-10"
+        >
+          <div className="text-center mb-16">
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-heading font-black text-white uppercase tracking-widest mb-4">
+              PILIH PAKET <span className="text-red-bright">GACOR ANDA</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-muted text-lg font-light max-w-2xl mx-auto">
+              Investasi cerdas untuk karir streaming Anda. Biarkan kami mengurus antrean, Anda cukup fokus pamer mekanik.
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            {[
+              {
+                name: "1 Bulan",
+                price: "Rp 55.000",
+                features: ["Bebas ribet ngurus antrean", "Semua otomatis & real-time", "Manajemen Role & VIP Fast Track", "Rekap Pendapatan Otomatis"],
+                popular: false
+              },
+              {
+                name: "2 Bulan",
+                price: "Rp 100.000",
+                originalPrice: "Rp 110.000",
+                save: "Hemat Rp 10.000",
+                features: ["Semua fitur 1 Bulan", "Lebih hemat & efisien", "Prioritas Support Tim Joka Joki"],
+                popular: true
+              },
+              {
+                name: "3 Bulan",
+                price: "Rp 125.000",
+                originalPrice: "Rp 165.000",
+                save: "Hemat Rp 40.000",
+                features: ["Semua fitur Premium", "Hemat maksimal, untung maksimal", "Akses fitur baru lebih awal"],
+                popular: false
+              }
+            ].map((plan, i) => (
+              <motion.div 
+                key={i}
+                variants={fadeUp}
+                whileHover={{ y: -10 }}
+                className={`relative group bg-[#0a0a0a] rounded-xl border border-red-bright shadow-[0_0_30px_rgba(255,51,51,0.2)] p-8 overflow-hidden transition-all duration-300`}
+              >
+
+                
+                <div className="mb-8">
+                  <h3 className="text-xl font-heading font-bold text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">{plan.price}</span>
+                    <span className="text-muted text-sm mb-1">/ {plan.name.toLowerCase()}</span>
+                  </div>
+                  {plan.originalPrice && (
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <span className="text-gray-500 line-through decoration-red-500 decoration-2">{plan.originalPrice}</span>
+                      <span className="text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">{plan.save}</span>
+                    </div>
+                  )}
+                  {!plan.originalPrice && <div className="h-5" />} {/* Spacer for alignment */}
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-red-bright shrink-0" />
+                      <span className="text-gray-300 text-sm leading-tight">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => {
+                    setSelectedPlan(plan)
+                    setPaymentModalOpen(true)
+                  }}
+                  className={`w-full py-4 rounded-lg font-heading font-bold uppercase tracking-widest transition-all duration-300 bg-red-bright hover:bg-red-600 text-white shadow-[0_0_20px_rgba(255,51,51,0.4)] group-hover:scale-[1.02] active:scale-95`}
+                >
+                  Bayar Sekarang
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
       {/* --- FAQ SECTION --- */}
       <section className="relative z-20 py-24 px-4 bg-[#050505] border-t border-[var(--red-dark)]/30">
         <motion.div 
@@ -495,6 +591,64 @@ export default function Home() {
           &copy; {new Date().getFullYear()} JOKA JOKI MABAR VIP.<br className="sm:hidden mt-2"/> DOMINASI TANPA BATAS.
         </p>
       </footer>
+
+      {/* --- PAYMENT MODAL --- */}
+      {paymentModalOpen && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPaymentModalOpen(false)} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-md bg-[#0f0f0f] border border-red-bright/30 rounded-2xl shadow-[0_0_50px_rgba(255,51,51,0.15)] overflow-hidden"
+          >
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-600 via-red-bright to-orange-500" />
+            
+            <button onClick={() => setPaymentModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="p-8">
+              <h3 className="text-2xl font-heading font-black text-white uppercase tracking-wider mb-2">Konfirmasi Pembayaran</h3>
+              <p className="text-muted text-sm mb-6">Selesaikan pembayaran untuk mulai menggunakan Joka Joki Premium.</p>
+              
+              <div className="bg-black/50 border border-white/5 rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-400 text-sm">Paket Pilihan</span>
+                  <span className="text-white font-bold">{selectedPlan.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Total Tagihan</span>
+                  <span className="text-red-bright font-black text-xl">{selectedPlan.price}</span>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <p className="text-gray-400 text-sm mb-3">Transfer ke rekening berikut:</p>
+                <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-600/20 flex items-center justify-center shrink-0">
+                    <span className="font-black text-blue-400 italic">BCA</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-xl tracking-widest">7600 2622 75</p>
+                    <p className="text-gray-400 text-sm uppercase font-semibold">a/n Mustofa</p>
+                  </div>
+                </div>
+              </div>
+
+              <a 
+                href={`https://wa.me/6287868036735?text=Halo%20Mas%20Mustofa,%20saya%20sudah%20transfer%20${selectedPlan.price.replace('Rp ', '').replace('.', '')}%20untuk%20langganan%20Joka%20Joki%20paket%20${selectedPlan.name}.%20Berikut%20bukti%20pembayarannya:`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg font-bold uppercase tracking-wider transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] active:scale-95"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Konfirmasi via WA
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
     </div>
   )
 }
