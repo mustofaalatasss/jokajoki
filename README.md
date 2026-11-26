@@ -66,10 +66,10 @@ Ekosistem *live streaming* gaming di Indonesia berkembang pesat dengan monetisas
 - Widget *overlay* transparan berestetika turnamen esports yang dirancang khusus untuk dipasang sebagai *Browser Source* di **OBS Studio** atau **TikTok Live Studio**.
 - Disinkronkan secara *real-time* menggunakan **Supabase Realtime (`postgres_changes`)** sehingga penonton di *live stream* dapat melihat skuad yang sedang bertanding, *timer* durasi *match* berjalan, dan 5 antrean berikutnya secara langsung tanpa *refresh* manual.
 
-### 4. Multi-Tenant SaaS Architecture & Owner Control Panel (`/owner`)
-- **Multi-Organization Data Isolation:** Setiap akun Joki/Streamer beroperasi di dalam ruang lingkup `Organization` tersendiri sehingga data pelanggan, riwayat sesi, dan keuangan terisolasi sepenuhnya.
-- **SaaS Subscription Management:** Panel khusus Administrator/Owner untuk memantau metrik global (total *tenant* aktif, akumulasi sesi *live*, total perputaran omzet), memperpanjang masa aktif langganan bulanan/harian, hingga memblokir akun yang kedaluwarsa (`/expired`).
-- **Read-Only Interactive Sandbox (`/demo`):** Pengunjung atau calon klien dapat mencoba seluruh antarmuka *Dashboard* secara langsung menggunakan data simulasi tanpa perlu mendaftar, dilindungi oleh *server-side mutation guard* (`checkDemoMutation`).
+### 4. Multi-Tenant SaaS Architecture & Subscription Governance
+- **Multi-Organization Data Isolation:** Setiap akun Joki/Streamer beroperasi di dalam ruang lingkup *tenant* tersendiri sehingga data pelanggan, riwayat sesi, dan keuangan terisolasi sepenuhnya.
+- **SaaS Subscription Lifecycle:** Sistem manajemen masa aktif langganan otomatis (bulanan/harian), pemantauan metrik operasional global, serta proteksi akses akun kedaluwarsa secara *real-time*.
+- **Read-Only Interactive Sandbox (`/demo`):** Pengunjung atau *recruiter* dapat mencoba seluruh antarmuka *Dashboard* secara langsung menggunakan data simulasi tanpa perlu mendaftar, dilindungi oleh *server-side mutation guard*.
 
 ### 5. Customer CRM & Anti-Toxic Moderation
 - Pencatatan basis data pelanggan otomatis yang dikelompokkan per minggu, histori *match* komprehensif, fitur pemberian **Bonus Match**, serta fitur **Blacklist** instan bagi pemain yang AFK/*troll* agar otomatis ditolak pada pendaftaran berikutnya.
@@ -81,29 +81,28 @@ Ekosistem *live streaming* gaming di Indonesia berkembang pesat dengan monetisas
 ```mermaid
 flowchart TB
     subgraph Clients["Client Layer"]
-        Landing["Landing Page & Pricing (/)"]
-        Demo["Interactive Sandbox (/demo)"]
-        Dashboard["Streamer Dashboard (/dashboard)"]
-        OBS["OBS Live Stream Overlay (/live)"]
-        Owner["SaaS Owner Console (/owner)"]
+        Landing["Landing Page & Pricing"]
+        Demo["Interactive Sandbox Demo"]
+        Dashboard["Streamer Live Dashboard"]
+        OBS["OBS Live Stream Overlay"]
+        Admin["SaaS Management Console"]
     end
 
-    subgraph NextApp["Next.js 16 App Router (Serverless / Node Runtime)"]
-        Proxy["JWT Auth & Role Guard (src/proxy.ts)"]
+    subgraph NextApp["Application Layer (Next.js App Router)"]
+        Auth["JWT Auth & Role-Based Access Guard"]
         Actions["Transactional Server Actions"]
-        Webhook["CI/CD Auto-Deploy Webhook (/api/webhook)"]
     end
 
     subgraph DataLayer["Persistence & Real-Time Layer"]
         Prisma["Prisma ORM (ACID Transactions)"]
         Postgres[("PostgreSQL Database")]
-        Realtime["Supabase Realtime (Postgres Changes)"]
+        Realtime["Realtime Event Broadcast"]
     end
 
     Landing --> NextApp
     Demo --> NextApp
-    Dashboard --> Proxy --> Actions
-    Owner --> Proxy --> Actions
+    Dashboard --> Auth --> Actions
+    Admin --> Auth --> Actions
     Actions --> Prisma --> Postgres
     Postgres --> Realtime --> OBS
 ```
@@ -114,88 +113,16 @@ flowchart TB
 
 | Kategori | Teknologi | Peran dalam Sistem |
 | :--- | :--- | :--- |
-| **Framework Utama** | **Next.js 16 (App Router)** & **React 19** | *Server Components*, *Server Actions*, *Routing*, dan optimasi performa rendering |
-| **Bahasa Pemrograman** | **TypeScript 5** | *End-to-end static type safety* pada logika bisnis, skema data, dan komponen UI |
-| **Database & Realtime** | **PostgreSQL** & **Supabase** | Penyimpanan relasional *multi-tenant* dan penyiaran perubahan tabel *real-time* untuk *overlay* |
+| **Framework Utama** | **Next.js (App Router)** & **React 19** | *Server Components*, *Server Actions*, *Routing*, dan optimasi performa rendering |
+| **Bahasa Pemrograman** | **TypeScript** | *End-to-end static type safety* pada logika bisnis, skema data, dan komponen UI |
+| **Database & Realtime** | **PostgreSQL** & **Supabase** | Penyimpanan relasional *multi-tenant* dan sinkronisasi data *real-time* untuk *overlay* |
 | **ORM** | **Prisma ORM** | Pemodelan skema relasional kompleks dan eksekusi mutasi antrean dengan transaksi ACID |
-| **Autentikasi & Keamanan** | **Better Auth** & **JOSE (JWT)** | Manajemen sesi berbasis *HTTP-only cookie*, verifikasi token JWT, dan *Role-Based Access Control* (`ADMIN`, `JOKI`, `USER`) |
+| **Autentikasi & Keamanan** | **Better Auth** & **JWT (HTTP-Only Cookie)** | Otentikasi aman anti-XSS/CSRF serta *Role-Based Access Control (RBAC)* |
 | **Styling & Animasi** | **Tailwind CSS v4**, **Framer Motion**, **Lucide** | *Design system* kustom bertema *Esports Tournament* dengan animasi interaktif berkecepatan tinggi |
-| **Deployment & DevOps** | **PM2**, **Git Webhook**, **Linux VPS / Vercel** | *Zero-downtime background rebuild* otomatis melalui *secured deployment webhook* |
 
 ---
 
-## Struktur Direktori Utama
-
-```text
-├── prisma/
-│   ├── schema.prisma          # Skema database multi-tenant (User, Organization, LiveSession, MabarEntry, MabarMatch, dll.)
-│   └── clear.ts               # Utilitas pembersihan data development
-├── public/
-│   └── brand/                 # Aset identitas visual & logo Joka Joki
-├── src/
-│   ├── app/
-│   │   ├── (main)/            # Area terproteksi Streamer/Joki
-│   │   │   ├── dashboard/     # Panel kontrol live: Skuad Aktif, Antrean, Fast Track, & Rekap Sesi
-│   │   │   ├── customers/     # CRM pelanggan mingguan & statistik loyalitas
-│   │   │   ├── history/       # Riwayat pertandingan & log sesi
-│   │   │   └── settings/      # Konfigurasi identitas Joki, penguncian Role, & Rate Card harga
-│   │   ├── demo/              # Sandbox interaktif publik tanpa login (Read-Only Guarded)
-│   │   ├── live/              # Halaman widget transparan real-time untuk OBS / TikTok Live
-│   │   ├── owner/             # Panel Super-Admin SaaS (manajemen langganan & analitik global)
-│   │   ├── login/ & register/ # Alur autentikasi tenant & pembuatan organisasi otomatis
-│   │   └── api/               # Endpoint Auth handler & automated CI/CD deployment webhook
-│   ├── components/            # Komponen UI reusable (Design System Esports) & Layout
-│   ├── lib/                   # Konfigurasi Prisma, Supabase client, JWT helper, & session resolver
-│   └── proxy.ts               # Middleware/Proxy otorisasi rute berbasis JWT & Role
-```
-
----
-
-## Panduan Menjalankan Proyek Lokal (*Getting Started*)
-
-### 1. Prasyarat
-- **Node.js** `v20+`
-- **npm** / **pnpm** / **bun**
-- Database **PostgreSQL** (disarankan menggunakan **Supabase** untuk fitur *Realtime Overlay*)
-
-### 2. Instalasi Dependensi
-```bash
-git clone https://github.com/mustofaalatasss/jokajoki.git
-cd jokajoki
-npm install
-```
-
-### 3. Konfigurasi Environment Variables
-Buat file `.env` pada direktori utama proyek dan sesuaikan konfigurasi berikut:
-
-```env
-# Database Connection (Prisma & Supabase Pooler)
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
-
-# Supabase Public Keys (Untuk Live Stream Overlay Realtime)
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
-
-# Authentication Secret
-BETTER_AUTH_SECRET="your-strong-random-secret-key"
-BETTER_AUTH_URL="http://localhost:3000"
-```
-
-### 4. Sinkronisasi Skema Database & Menjalankan Server
-```bash
-# Generate Prisma Client & dorong skema ke database
-npx prisma generate
-npx prisma db push
-
-# Jalankan server development (Turbopack)
-npm run dev
-```
-Buka [http://localhost:3000](http://localhost:3000) di browser untuk melihat halaman utama, atau kunjungi [http://localhost:3000/demo](http://localhost:3000/demo) untuk langsung mencoba simulasi *Dashboard*.
-
----
-
-## Eksplorasi Cepat untuk Recruiter & Reviewer
+## Eksplorasi Cepat untuk Recruiter & Perusahaan
 
 Ingin melihat langsung bagaimana produk ini bekerja tanpa membuat akun?
 1. **Landing Page & Value Proposition:** [https://jokajoki.my.id](https://jokajoki.my.id)
